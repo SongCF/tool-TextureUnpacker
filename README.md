@@ -8,6 +8,6 @@
 
 #如何使用
 1. 首先新建一个cocos2d-x工程（使用的3.x版本）
-2. 将2dx_file目录下的文件用于替换原cocos2dx引擎的文件（SpriteFrameCache只是多加了一个函数priteFrameCache::getSpriteframes()）
+2. 将2dx_file目录下的文件用于替换原cocos2dx引擎的文件（SpriteFrameCache只是多加了一个函数SpriteFrameCache::getSpriteframes()）
 3. 替换Classes 和 Resource
 4. 编译运行即可

@@ -43,5 +43,15 @@ bool HelloWorld::init()
 void HelloWorld::timeToDo(float dt)
 {
 	PlistTool *tool = new PlistTool();
-	tool->unpackTextureByPlist("Enemy.plist");
+	
+	std::vector<std::string> vec;
+	vec.push_back("Enemy.plist");
+	vec.push_back("1001_effup.plist");
+	//vec.push_back("1002_effup.plist");
+	//vec.push_back("1003_effup.plist");
+	//vec.push_back("1003_role.plist");
+	tool->addUnpackList(vec);
+	tool->startUnpack([](){
+		MessageBox("unpack finished", "info");
+	});
 }

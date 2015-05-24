@@ -9,6 +9,9 @@ using namespace cocos2d;
 #define INVALID_IMAGE_HEIGHT 2
 
 
+//#define MSG_UNPACK_FINISH "MSG_UNPACK_FINISH"
+
+
 PlistTool::PlistTool()
 	: m_bProcessFinished(true)
 {
@@ -17,6 +20,45 @@ PlistTool::PlistTool()
 PlistTool::~PlistTool()
 {
 	m_textureList.clear();
+}
+
+void PlistTool::addUnpackList(const std::vector<std::string>& list)
+{
+	m_willUnpackList = list;
+}
+
+void PlistTool::startUnpack(pFuncUnpackFinishedCallback func)
+{
+	m_unpackFinishedCallfunc = func;
+	Director::getInstance()->getScheduler()->schedule(std::bind(&PlistTool::updateCheckEnd, this, std::placeholders::_1),
+		Director::getInstance()->getRunningScene(), 1, -1, false, false, "SCHEDULE_PlistTool_updateCheckEnd");
+}
+
+void PlistTool::updateCheckEnd(float dt)
+{
+	if (this->isLastPlistProcessFinish() && m_willUnpackList.size() > 0)
+	{
+		//generate file pre-name
+		char tempbuf[1024] = { 0 };
+		std::string directoryPath;
+		::GetCurrentDirectoryA(sizeof(tempbuf), tempbuf);
+		std::string preName = this->generateFileName(m_willUnpackList[0].c_str());
+		::CreateDirectoryA((tempbuf + std::string("/") + preName).c_str(), NULL);
+		directoryPath = tempbuf + std::string("/") + preName + "/";
+		this->setSavePath(directoryPath.c_str());
+
+		this->unpackTextureByPlist(m_willUnpackList[0].c_str());
+		m_willUnpackList.erase(m_willUnpackList.begin());
+	}
+	else if (this->isLastPlistProcessFinish() && m_willUnpackList.empty())
+	{
+		Director::getInstance()->getScheduler()->unschedule("SCHEDULE_PlistTool_updateCheckEnd",Director::getInstance()->getRunningScene());
+		//Director::getInstance()->getEventDispatcher()->dispatchCustomEvent(MSG_UNPACK_FINISH);
+		if (m_unpackFinishedCallfunc)
+		{
+			m_unpackFinishedCallfunc();
+		}
+	}
 }
 
 bool PlistTool::isLastPlistProcessFinish()
@@ -46,20 +88,12 @@ void PlistTool::unpackTextureByPlist(const char* plistFile)
 	}
 
 	m_bProcessFinished = false;
-	char tempbuf[1024] = { 0 };
 
 	//0. clear
 	m_textureList.clear();
 	SpriteFrameCache* pSFC = SpriteFrameCache::getInstance();
 	pSFC->removeSpriteFrames();
 	pSFC->addSpriteFramesWithFile(plistFile);
-
-	//generate file pre-name
-	std::string directoryPath;
-	::GetCurrentDirectoryA(sizeof(tempbuf), tempbuf);
-	std::string preName = generateFileName(plistFile);
-	::CreateDirectoryA((tempbuf + std::string("/") + preName).c_str(), NULL);
-	directoryPath = tempbuf + std::string("/") + preName + "/";
 
 
 	//1. get texture data
@@ -88,6 +122,7 @@ void PlistTool::unpackTextureByPlist(const char* plistFile)
 	//m_iFramesCount = framesMap.size();  //delete invalid image
 	m_iFramesCount = 0;
 	char fileKeyBuf[1024] = { 0 };
+	char tempBuf[32];
 	for (Map<std::string, SpriteFrame*>::const_iterator itor = framesMap.begin(); itor != framesMap.end(); ++itor)
 	{
 		SpriteFrame* frame = itor->second;
@@ -115,10 +150,10 @@ void PlistTool::unpackTextureByPlist(const char* plistFile)
 			continue;
 		}
 
-		sprintf(tempbuf, "%0004d.png", m_iFramesCount);
+		sprintf(tempBuf, "%0004d.png", m_iFramesCount);
 		Sprite* pSp = Sprite::createWithSpriteFrame(itor->second);
 		RenderTexture* texture = RenderTexture::create(pSp->getContentSize().width, pSp->getContentSize().height);
-		texture->setName(directoryPath + tempbuf);
+		texture->setName(m_savePath + tempBuf);
 		//texture->setName(itor->first + ".png");
 		texture->begin();
 		pSp->setPosition(pSp->getContentSize()/2); //--- be careful
@@ -130,7 +165,7 @@ void PlistTool::unpackTextureByPlist(const char* plistFile)
 	
 	//3. set render end callback
 	Director::getInstance()->getScheduler()->schedule(std::bind(&PlistTool::timeToSaveFile, this, std::placeholders::_1), 
-		Director::getInstance()->getRunningScene(), 0, 0, false, false, "PlistTool_TimeToSaveFile");
+		Director::getInstance()->getRunningScene(), 0, 0, false, false, "SCHEDULE_PlistTool_TimeToSaveFile");
 }
 
 void PlistTool::timeToSaveFile(float dt)

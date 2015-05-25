@@ -1,4 +1,4 @@
-# PlistTextureUnpacker
+# TextureUnpacker
 - 将TexturePacker打包的纹理大图(plist+图片)还原为每一张小图
 - 剔除加密后生成的无效的片
 - 剔除加密后出现的重复图片
